@@ -23,7 +23,7 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 				'timeout' => 2
 			));
 
-			if (is_wp_error($response)) {
+			if ( is_wp_error($response) ) {
 				$error = $response;
 				// throw new Exception($error->get_error_message());
 				continue;
@@ -46,7 +46,7 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 					break;
 			}
 
-			if ($lat!==0 || $lng!==0) {
+			if ( $lat!==0 || $lng!==0 ) {
 				break;
 			}
 		}

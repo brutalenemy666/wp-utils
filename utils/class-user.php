@@ -19,21 +19,21 @@ class Crb_User {
 		)
 	);
 
-	public static function get_instance($user=null) {
+	public static function get_instance( $user=null ) {
 		return new self($user);
 	}
 
-	protected function __construct($user=null) {
+	protected function __construct( $user=null ) {
 		// $this->meta_prefix = '_crb_';
 
 		$this->load_user($user);
 	}
 
-	public function __isset($key) {
+	public function __isset( $key ) {
 		return (bool) $this->$key;
 	}
 
-	public function __get($key) {
+	public function __get( $key ) {
 		$function_name = '_get_meta';
 		$user_fields = array(
 			'user_login',
@@ -45,12 +45,12 @@ class Crb_User {
 			'ID',
 		);
 
-		if (in_array($key, $user_fields)) {
+		if ( in_array($key, $user_fields) ) {
 			return $this->user->$key;
-		} else if (method_exists($this, $key)) {
+		} else if ( method_exists($this, $key) ) {
 			// make the function accessible only if the method is public
 			$reflection = new ReflectionMethod($this, $key);
-			if ($reflection->isPublic()) {
+			if ( $reflection->isPublic() ) {
 				return $this->$key();
 			}
 		}
@@ -58,18 +58,18 @@ class Crb_User {
 		return $this->$function_name($key);
 	}
 
-	protected function load_user($user) {
+	protected function load_user( $user ) {
 		if ( !is_user_logged_in() && !$user ) {
 			return;
 		}
 
-		if (is_object($user)) {
+		if ( is_object($user) ) {
 			$this->user = $user;
-		} else if (is_integer($user)) {
+		} else if ( is_integer($user) ) {
 			$this->user = get_user_by('id', $user);
-		} else if (is_string($user) && is_email($user)) {
+		} else if ( is_string($user) && is_email($user) ) {
 			$this->user = get_user_by('email', $user);
-		} else if (is_string($user)) {
+		} else if ( is_string($user) ) {
 			$this->user = get_user_by('login', $user);
 		} else {
 			$this->user = wp_get_current_user();
@@ -78,11 +78,11 @@ class Crb_User {
 		return $this;
 	}
 
-	protected function _set_meta($key, $value) {
+	protected function _set_meta( $key, $value ) {
 		return update_user_meta($this->user->ID, $this->meta_prefix . $key, $value);
 	}
 
-	protected function _get_meta($key) {
+	protected function _get_meta( $key ) {
 		$value = get_user_meta($this->user->ID, $this->meta_prefix . $key, true);
 
 		return $value;
@@ -92,7 +92,7 @@ class Crb_User {
 		# Public Functions
 	========================================================================== */
 
-	public function can($capability) {
+	public function can( $capability ) {
 		if ( !$this->user ) {
 			return;
 		}

@@ -40,21 +40,21 @@ abstract class Crb_Post {
 	 * }
 	 */
 
-	protected function __construct($post=null) {
+	protected function __construct( $post=null ) {
 		// $this->meta_prefix = '_crb_';
 
-		if (is_numeric($post) || intval($post)) {
+		if ( is_numeric($post) || intval($post) ) {
 			$this->post_id = absint($post);
 			$this->post = get_post($this->post_id);
-		} elseif ($post instanceof WC_Post) {
+		} elseif ( $post instanceof WC_Post ) {
 			$this->post_id = absint($post->id);
 			$this->post = $post->post;
-		} elseif (isset($post->ID)) {
+		} elseif ( isset($post->ID) ) {
 			$this->post_id = absint($post->ID);
 			$this->post = $post;
 		}
 
-		if ($post!==null && !$this->post) {
+		if ( $post!==null && !$this->post ) {
 			$message = __('Post not found.', 'crb');
 			throw new Exception($message);
 		} else if ( $this->post ) {
@@ -64,25 +64,25 @@ abstract class Crb_Post {
 		$this->post_type_validation();
 	}
 
-	public static function get_instance($post) {
+	public static function get_instance( $post ) {
 		$child_class = get_called_class();
 
 		return new $child_class($post);
 	}
 
-	public function __isset($key) {
+	public function __isset( $key ) {
 		return (bool) $this->$key;
 	}
 
-	public function __get($key) {
+	public function __get( $key ) {
 		$function_name = '_get_meta';
 
-		if (preg_match('~^author_~', $key)) {
+		if ( preg_match('~^author_~', $key) ) {
 			$function_name = '_get_author_info';
-		} else if (method_exists($this, $key)) {
+		} else if ( method_exists($this, $key) ) {
 			// make the function accessible only if the method is public
 			$reflection = new ReflectionMethod($this, $key);
-			if ($reflection->isPublic()) {
+			if ( $reflection->isPublic() ) {
 				return $this->$key();
 			}
 		}
@@ -90,26 +90,26 @@ abstract class Crb_Post {
 		return $this->$function_name($key);
 	}
 
-	protected function _set_meta($key, $value) {
+	protected function _set_meta( $key, $value ) {
 		update_post_meta($this->post_id, $this->meta_prefix . $key, $value);
 	}
 
-	protected function _get_meta($key) {
+	protected function _get_meta( $key ) {
 		$value = get_post_meta($this->post_id, $this->meta_prefix . $key, true);
 
 		return $value;
 	}
 
-	protected function _get_author_info($key) {
-		if (!$this->post) {
+	protected function _get_author_info( $key ) {
+		if ( !$this->post ) {
 			return;
 		}
 
-		if (!$this->author) {
+		if ( !$this->author ) {
 			$this->author = get_userdata($this->post->post_author);
 		}
 
-		if ($key==='data') {
+		if ( $key==='data' ) {
 			return $this->author;
 		}
 
@@ -121,7 +121,7 @@ abstract class Crb_Post {
 	/**
 	 * Validates if the current user has permissions to edit/create new entries
 	 */
-	protected function current_user_can_save_to_db($action_name) {
+	protected function current_user_can_save_to_db( $action_name ) {
 		if ( !is_user_logged_in() ) {
 			return $this;
 		}
@@ -139,7 +139,7 @@ abstract class Crb_Post {
 		return (int) $this->post->ID;
 	}
 
-	public function get_permalink($leavename=false) {
+	public function get_permalink( $leavename=false ) {
 		return get_permalink($this->post_id, $leavename);
 	}
 
@@ -147,9 +147,9 @@ abstract class Crb_Post {
 		return $this->post->post_title;
 	}
 
-	public function get_content($wpauto=false) {
+	public function get_content( $wpauto=false ) {
 		$content = $this->post->post_content;
-		if ($wpauto) {
+		if ( $wpauto ) {
 			$content = wpautop(do_shortcode($content));
 		}
 
@@ -160,8 +160,8 @@ abstract class Crb_Post {
 		return get_extended($this->post->post_content);
 	}
 
-	public function get_thumbnail($size='thumbnail', $html=false) {
-		if (!has_post_thumbnail($this->post->ID)) {
+	public function get_thumbnail( $size='thumbnail', $html=false ) {
+		if ( !has_post_thumbnail($this->post->ID) ) {
 			return;
 		}
 
@@ -177,7 +177,7 @@ abstract class Crb_Post {
 		return $return;
 	}
 
-	public function get_children($post_type='') {
+	public function get_children( $post_type='' ) {
 		$key = 'children';
 		$post_type = esc_sql($post_type);
 
@@ -219,8 +219,11 @@ abstract class Crb_Post {
 
 		$function_name = 'wp_insert_post';
 		if (
-			!empty($postdata['ID']) ||
-			($this->post && intval($postdata['ID'])===intval($this->post->ID))
+			!empty($postdata['ID'])
+			|| (
+				$this->post
+				&& intval($postdata['ID'])===intval($this->post->ID)
+			)
 		) {
 			$function_name = 'wp_update_post';
 		}
@@ -230,7 +233,7 @@ abstract class Crb_Post {
 
 		$this->new_postdata['post_id'] = $function_name($postdata, true);
 
-		if (is_wp_error($this->new_postdata['post_id'])) {
+		if ( is_wp_error($this->new_postdata['post_id']) ) {
 			$error = $this->new_postdata['post_id'];
 			throw new Exception($error->get_error_message());
 		} else {
@@ -244,7 +247,7 @@ abstract class Crb_Post {
 		$post_id = $this->new_postdata['post_id'];
 
 		$metadata = $this->new_postdata['metadata'];
-		if (empty($metadata)) {
+		if ( empty($metadata) ) {
 			return;
 		}
 
@@ -257,12 +260,12 @@ abstract class Crb_Post {
 		$post_id = $this->new_postdata['post_id'];
 
 		$taxonomies = $this->new_postdata['taxonomies'];
-		if (empty($taxonomies)) {
+		if ( empty($taxonomies) ) {
 			return;
 		}
 
 		foreach ($taxonomies as $taxonomy_name => $taxonomy_terms) {
-			if (empty($taxonomy_terms)) {
+			if ( empty($taxonomy_terms) ) {
 				continue;
 			}
 
@@ -272,7 +275,7 @@ abstract class Crb_Post {
 				$taxonomy_name
 			);
 
-			if (is_wp_error($terms)) {
+			if ( is_wp_error($terms) ) {
 				$error = $terms;
 				throw new Exception($error->get_error_message());
 			}

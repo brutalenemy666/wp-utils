@@ -19,7 +19,7 @@ class Crb_Geolocation_By_Address extends Crb_Geolocation {
 
 		$geocode = json_decode($result['body']);
 
-		if (!empty($geocode->results)) {
+		if ( !empty($geocode->results) ) {
 			$lat = $geocode->results[0]->geometry->location->lat;
 			$lng = $geocode->results[0]->geometry->location->lng;
 		} else {
