@@ -15,11 +15,11 @@ abstract class Crb_Post {
 	protected $meta_prefix = '';
 
 	protected $new_postdata = array(
-		'post_id' => 0,
-		'postdata' => array(
+		'post_id'    => 0,
+		'postdata'   => array(
 			// 'post_type' => 'post'
 		),
-		'metadata' => array(
+		'metadata'   => array(
 			// meta_key => meta_value
 		),
 		'taxonomies' => array(
@@ -62,6 +62,12 @@ abstract class Crb_Post {
 		}
 
 		$this->post_type_validation();
+	}
+
+	public static function get_instance($post) {
+		$child_class = get_called_class();
+
+		return new $child_class($post);
 	}
 
 	public function __isset($key) {
