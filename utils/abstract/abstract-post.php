@@ -41,7 +41,7 @@ abstract class Crb_Post {
 	 */
 
 	protected function __construct($post=null) {
-		$this->meta_prefix = '_crb_';
+		// $this->meta_prefix = '_crb_';
 
 		if (is_numeric($post) || intval($post)) {
 			$this->post_id = absint($post);
