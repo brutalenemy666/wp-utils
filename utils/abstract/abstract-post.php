@@ -4,9 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-abstract class Crb_Post {
-
-	public $post_id = 0;
+abstract class Crb_Abstract_Post {
 
 	public $post = null;
 
@@ -29,10 +27,10 @@ abstract class Crb_Post {
 
 	protected $author = null;
 
-	abstract protected function post_type_validation();
+	abstract protected function _post_type_validation();
 	/**
 	 * Example:
-	 * protected function post_type_validation() {
+	 * protected function _post_type_validation() {
 	 * 		if ($this->post->post_type!=='post-type-name') {
 	 * 			$message = __('Cheating, uh?', 'crb');
 	 * 			throw new Exception($message);
@@ -44,13 +42,11 @@ abstract class Crb_Post {
 		// $this->meta_prefix = '_crb_';
 
 		if ( is_numeric($post) || intval($post) ) {
-			$this->post_id = absint($post);
-			$this->post = get_post($this->post_id);
+			$post_id = absint($post);
+			$this->post = get_post($post_id);
 		} elseif ( $post instanceof WC_Post ) {
-			$this->post_id = absint($post->id);
 			$this->post = $post->post;
 		} elseif ( isset($post->ID) ) {
-			$this->post_id = absint($post->ID);
 			$this->post = $post;
 		}
 
@@ -61,7 +57,7 @@ abstract class Crb_Post {
 			$this->post_type = $this->post->post_type;
 		}
 
-		$this->post_type_validation();
+		$this->_post_type_validation();
 	}
 
 	public static function get_instance( $post ) {
@@ -91,11 +87,15 @@ abstract class Crb_Post {
 	}
 
 	protected function _set_meta( $key, $value ) {
-		update_post_meta($this->post_id, $this->meta_prefix . $key, $value);
+		update_post_meta($this->get_id(), $this->meta_prefix . $key, $value);
+	}
+
+	protected function _delete_meta( $key ) {
+		delete_post_meta($this->get_id(), $key);
 	}
 
 	protected function _get_meta( $key ) {
-		$value = get_post_meta($this->post_id, $this->meta_prefix . $key, true);
+		$value = get_post_meta($this->get_id(), $this->meta_prefix . $key, true);
 
 		return $value;
 	}
@@ -121,12 +121,13 @@ abstract class Crb_Post {
 	/**
 	 * Validates if the current user has permissions to edit/create new entries
 	 */
-	protected function current_user_can_save_to_db( $action_name ) {
+	protected function _current_user_can_save_to_db( $action_name ) {
 		if ( !is_user_logged_in() ) {
 			return $this;
 		}
 
 		// validation goes here
+		// throw an error on failure
 
 		return $this;
 	}
@@ -140,7 +141,7 @@ abstract class Crb_Post {
 	}
 
 	public function get_permalink( $leavename=false ) {
-		return get_permalink($this->post_id, $leavename);
+		return get_permalink($this->get_id(), $leavename);
 	}
 
 	public function get_title() {
@@ -161,11 +162,11 @@ abstract class Crb_Post {
 	}
 
 	public function get_thumbnail( $size='thumbnail', $html=false ) {
-		if ( !has_post_thumbnail($this->post->ID) ) {
+		if ( !has_post_thumbnail($this->get_id()) ) {
 			return;
 		}
 
-		$thumbnail_id = get_post_thumbnail_id($this->post->ID);
+		$thumbnail_id = get_post_thumbnail_id($this->get_id());
 
 		if ( $html ) {
 			$return = wp_get_attachment_image($thumbnail_id, $size);
@@ -177,9 +178,8 @@ abstract class Crb_Post {
 		return $return;
 	}
 
-	public function get_children( $post_type='' ) {
-		$key = 'children';
-		$post_type = esc_sql($post_type);
+	public function get_children( $post_type='', $post_status='publish' ) {
+		$key = 'children_' . $post_status;
 
 		if ( !empty($post_type) ) {
 			$key .= '_' . $post_type;
@@ -192,9 +192,11 @@ abstract class Crb_Post {
 		global $wpdb;
 
 		if ( !empty($post_type) ) {
-			$select = "SELECT ID FROM {$wpdb->posts} WHERE post_type = '{$post_type}' AND post_parent = {$this->post->ID} AND post_status = 'publish'";
+			$query = "SELECT ID FROM {$wpdb->posts} WHERE post_type = '%s' AND post_parent = %d AND post_status = %s";
+			$query = $wpdb->prepare($query, $post_type, $this->get_id(), $post_status);
 		} else {
-			$select = "SELECT ID FROM {$wpdb->posts} WHERE post_parent = {$this->post->ID} AND post_status = 'publish'";
+			$query = "SELECT ID FROM {$wpdb->posts} WHERE post_parent = %d AND post_status = %s";
+			$query = $wpdb->prepare($query, $this->get_id(), $post_status);
 		}
 
 		$this->$key = $wpdb->get_results($select);
@@ -206,15 +208,16 @@ abstract class Crb_Post {
 		# Post Save/Update
 	========================================================================== */
 
-	protected function save_to_db() {
-		$this->insert_as_wp_post();
-		$this->update_metas();
-		$this->update_taxonomies();
+	protected function _save_to_db() {
+		$this->_insert_as_wp_post();
+		$this->_update_metas();
+		$this->_update_taxonomies();
+		$this->_after_save();
 
 		return $this->new_postdata['post_id'];
 	}
 
-	protected function insert_as_wp_post() {
+	protected function _insert_as_wp_post() {
 		$postdata = $this->new_postdata['postdata'];
 
 		$function_name = 'wp_insert_post';
@@ -222,14 +225,14 @@ abstract class Crb_Post {
 			!empty($postdata['ID'])
 			|| (
 				$this->post
-				&& intval($postdata['ID'])===intval($this->post->ID)
+				&& intval($postdata['ID'])===intval($this->get_id())
 			)
 		) {
 			$function_name = 'wp_update_post';
 		}
 
 		// check for irregularities
-		$this->current_user_can_save_to_db($function_name);
+		$this->_current_user_can_save_to_db($function_name);
 
 		$this->new_postdata['post_id'] = $function_name($postdata, true);
 
@@ -237,13 +240,15 @@ abstract class Crb_Post {
 			$error = $this->new_postdata['post_id'];
 			throw new Exception($error->get_error_message());
 		} else {
-			$this->post_id = $this->new_postdata['post_id'];
-			$this->post = get_post($this->post_id);
+			$post_id = $this->new_postdata['post_id'];
+			$this->post = get_post($post_id);
 			$this->post_type = $this->post->post_type;
 		}
+
+		return $this;
 	}
 
-	protected function update_metas() {
+	protected function _update_metas() {
 		$post_id = $this->new_postdata['post_id'];
 
 		$metadata = $this->new_postdata['metadata'];
@@ -254,9 +259,11 @@ abstract class Crb_Post {
 		foreach ($metadata as $meta_key => $meta_value) {
 			update_post_meta($post_id, $this->meta_prefix . $meta_key, $meta_value);
 		}
+
+		return $this;
 	}
 
-	protected function update_taxonomies() {
+	protected function _update_taxonomies() {
 		$post_id = $this->new_postdata['post_id'];
 
 		$taxonomies = $this->new_postdata['taxonomies'];
@@ -280,5 +287,12 @@ abstract class Crb_Post {
 				throw new Exception($error->get_error_message());
 			}
 		}
+
+		return $this;
+	}
+
+	protected function _after_save() {
+		// do something when post saving is successful
+		// can use $this
 	}
 }

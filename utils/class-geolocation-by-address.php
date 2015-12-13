@@ -4,11 +4,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Crb_Geolocation_By_Address extends Crb_Geolocation {
+class Crb_Geolocation_By_Address extends Crb_Abstract_Geolocation {
 
 	protected $geocode_apis = 'http://maps.googleapis.com/maps/api/geocode/json?address=%s&sensor=false';
 
-	protected function geolocate() {
+	protected function _geolocate() {
 		$webservice_url = sprintf($this->geocode_apis, urlencode($this->address));
 
 		$result = wp_remote_get($webservice_url);

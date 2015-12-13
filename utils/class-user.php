@@ -26,7 +26,7 @@ class Crb_User {
 	protected function __construct( $user=null ) {
 		// $this->meta_prefix = '_crb_';
 
-		$this->load_user($user);
+		$this->_load_user($user);
 	}
 
 	public function __isset( $key ) {
@@ -58,7 +58,7 @@ class Crb_User {
 		return $this->$function_name($key);
 	}
 
-	protected function load_user( $user ) {
+	protected function _load_user( $user ) {
 		if ( !is_user_logged_in() && !$user ) {
 			return;
 		}
@@ -79,7 +79,11 @@ class Crb_User {
 	}
 
 	protected function _set_meta( $key, $value ) {
-		return update_user_meta($this->user->ID, $this->meta_prefix . $key, $value);
+		update_user_meta($this->user->ID, $this->meta_prefix . $key, $value);
+	}
+
+	protected function _delete_meta( $key ) {
+		delete_user_meta($this->user->ID, $key);
 	}
 
 	protected function _get_meta( $key ) {

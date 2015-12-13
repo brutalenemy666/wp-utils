@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Crb_Geolocation_By_IP extends Crb_Geolocation {
+class Crb_Geolocation_By_IP extends Crb_Abstract_Geolocation {
 
 	/** @var array API endpoints for geolocating an IP address */
 	protected $geoip_apis = array(
@@ -12,7 +12,7 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 		'geoip-api.meteor' => 'http://geoip-api.meteor.com/lookup/%s',
 	);
 
-	protected function geolocate() {
+	protected function _geolocate() {
 		$lat = 0;
 		$lng = 0;
 

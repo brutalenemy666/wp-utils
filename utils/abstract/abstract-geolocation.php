@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-abstract class Crb_Geolocation {
+abstract class Crb_Abstract_Geolocation {
 
 	protected $ip;
 	protected $address;
@@ -22,7 +22,7 @@ abstract class Crb_Geolocation {
 
 	protected function __construct() { }
 
-	protected abstract function geolocate();
+	protected abstract function _geolocate();
 
 	public static function get( $ip_or_address=null ) {
 		$ip = '';
@@ -42,7 +42,7 @@ abstract class Crb_Geolocation {
 		$locator = new $locator_class($ip_or_address);
 		$locator->ip = $ip;
 		$locator->address = $address;
-		return $locator->geolocate();
+		return $locator->_geolocate();
 	}
 
 	public static function get_cached( $ip_or_address=null, $reset_cache=false ) {
