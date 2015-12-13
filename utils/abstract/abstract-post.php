@@ -6,9 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 abstract class Crb_Abstract_Post {
 
-	public $post = null;
+	// post type name to validate
+	protected $pt_to_validate = null; // post | page, etc.
 
-	public $post_type = null;
+	public $post = null;
 
 	protected $meta_prefix = '';
 
@@ -27,19 +28,19 @@ abstract class Crb_Abstract_Post {
 
 	protected $author = null;
 
-	abstract protected function _post_type_validation();
-	/**
-	 * Example:
-	 * protected function _post_type_validation() {
-	 * 		if ($this->post->post_type!=='post-type-name') {
-	 * 			$message = __('Cheating, uh?', 'crb');
-	 * 			throw new Exception($message);
-	 * 		}
-	 * }
-	 */
+	public static function get_instance( $post=null ) {
+		$child_class = get_called_class();
 
-	protected function __construct( $post=null ) {
+		return new $child_class($post);
+	}
+
+	protected function __construct( $post ) {
 		// $this->meta_prefix = '_crb_';
+
+		if ( is_null($this->pt_to_validate) ) {
+			$message = __('"post type name to validate : $pt_to_validate" protected variable is required, but not specified.', 'crb');
+			throw new Exception($message);
+		}
 
 		if ( is_numeric($post) || intval($post) ) {
 			$post_id = absint($post);
@@ -58,12 +59,6 @@ abstract class Crb_Abstract_Post {
 		}
 
 		$this->_post_type_validation();
-	}
-
-	public static function get_instance( $post ) {
-		$child_class = get_called_class();
-
-		return new $child_class($post);
 	}
 
 	public function __isset( $key ) {
@@ -95,9 +90,7 @@ abstract class Crb_Abstract_Post {
 	}
 
 	protected function _get_meta( $key ) {
-		$value = get_post_meta($this->get_id(), $this->meta_prefix . $key, true);
-
-		return $value;
+		return get_post_meta($this->get_id(), $this->meta_prefix . $key, true);
 	}
 
 	protected function _get_author_info( $key ) {
@@ -132,6 +125,22 @@ abstract class Crb_Abstract_Post {
 		return $this;
 	}
 
+	/**
+	 * Validates if the post_type matches the Class post_type
+	 */
+	protected function _post_type_validation( $post_type=null ) {
+		if ( !$post_type ) {
+			$post_type = $this->get_post_type();
+		}
+
+		if ($post_type===$this->pt_to_validate) {
+			return;
+		}
+
+		$message = __('Cheating, uh?', 'crb');
+		throw new Exception($message);
+	};
+
 	/* ==========================================================================
 		# Public Functions
 	========================================================================== */
@@ -146,6 +155,10 @@ abstract class Crb_Abstract_Post {
 
 	public function get_title() {
 		return $this->post->post_title;
+	}
+
+	public function get_post_type() {
+		return $this->post->post_type;
 	}
 
 	public function get_content( $wpauto=false ) {
@@ -179,16 +192,6 @@ abstract class Crb_Abstract_Post {
 	}
 
 	public function get_children( $post_type='', $post_status='publish' ) {
-		$key = 'children_' . $post_status;
-
-		if ( !empty($post_type) ) {
-			$key .= '_' . $post_type;
-		}
-
-		if ( !empty($this->$key) ) {
-			return $this->$key;
-		}
-
 		global $wpdb;
 
 		if ( !empty($post_type) ) {
@@ -199,9 +202,7 @@ abstract class Crb_Abstract_Post {
 			$query = $wpdb->prepare($query, $this->get_id(), $post_status);
 		}
 
-		$this->$key = $wpdb->get_results($select);
-
-		return $this->$key;
+		return $wpdb->get_results($select);
 	}
 
 	/* ==========================================================================
@@ -214,21 +215,28 @@ abstract class Crb_Abstract_Post {
 		$this->_update_taxonomies();
 		$this->_after_save();
 
-		return $this->new_postdata['post_id'];
+		// reset $new_postdata
+		$this->new_postdata = array(
+			'post_id'    => 0,
+			'postdata'   => array(),
+			'metadata'   => array(),
+			'taxonomies' => array()
+		);
+
+		return $this;
 	}
 
 	protected function _insert_as_wp_post() {
 		$postdata = $this->new_postdata['postdata'];
 
 		$function_name = 'wp_insert_post';
-		if (
-			!empty($postdata['ID'])
-			|| (
-				$this->post
-				&& intval($postdata['ID'])===intval($this->get_id())
-			)
-		) {
+		$postdata_post_id = empty($postdata['ID']) ? intval($postdata['ID']) : false;
+		if ( $postdata_post_id ) {
 			$function_name = 'wp_update_post';
+			$this->_post_type_validation( get_post_type($postdata_post_id) );
+		} else if ( $this->post ) {
+			$function_name = 'wp_update_post';
+			$this->_post_type_validation();
 		}
 
 		// check for irregularities
@@ -242,14 +250,13 @@ abstract class Crb_Abstract_Post {
 		} else {
 			$post_id = $this->new_postdata['post_id'];
 			$this->post = get_post($post_id);
-			$this->post_type = $this->post->post_type;
 		}
 
 		return $this;
 	}
 
 	protected function _update_metas() {
-		$post_id = $this->new_postdata['post_id'];
+		$post_id = $this->get_id();
 
 		$metadata = $this->new_postdata['metadata'];
 		if ( empty($metadata) ) {
@@ -264,7 +271,7 @@ abstract class Crb_Abstract_Post {
 	}
 
 	protected function _update_taxonomies() {
-		$post_id = $this->new_postdata['post_id'];
+		$post_id = $this->get_id();
 
 		$taxonomies = $this->new_postdata['taxonomies'];
 		if ( empty($taxonomies) ) {
@@ -276,11 +283,7 @@ abstract class Crb_Abstract_Post {
 				continue;
 			}
 
-			$terms = wp_set_object_terms(
-				$post_id,
-				$taxonomy_terms,
-				$taxonomy_name
-			);
+			$terms = wp_set_object_terms($post_id, $taxonomy_terms, $taxonomy_name);
 
 			if ( is_wp_error($terms) ) {
 				$error = $terms;
@@ -293,6 +296,6 @@ abstract class Crb_Abstract_Post {
 
 	protected function _after_save() {
 		// do something when post saving is successful
-		// can use $this
+		// might be handy in the child class
 	}
 }
