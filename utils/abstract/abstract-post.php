@@ -139,7 +139,7 @@ abstract class Crb_Abstract_Post {
 
 		$message = __('Cheating, uh?', 'crb');
 		throw new Exception($message);
-	};
+	}
 
 	/* ==========================================================================
 		# Public Functions
