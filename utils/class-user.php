@@ -120,4 +120,33 @@ class Crb_User {
 		return $user_role;
 	}
 
+	public function set_password( $password='' ) {
+		if ( !$password ) {
+			$password = wp_generate_password();
+		}
+
+		wp_set_password($password, $user->get_id());
+
+		return $password;
+	}
+
+	public function check_password( $password='' ) {
+		return wp_check_password($password, $this->user->data->user_pass, $user->get_id());
+	}
+
+	public function process_login( $password=false, $redirect_url='' ) {
+		if ( $password && !$this->check_password($password) ) {
+			$message = __('Invalid user password.', 'crb');
+			throw new Exception($message);
+		}
+
+		wp_set_auth_cookie($user->get_id(), true);
+
+		if ( !$redirect_url ) {
+			return;
+		}
+
+		wp_redirect($redirect_url);
+		exit;
+	}
 }
