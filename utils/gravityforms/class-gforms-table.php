@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Crb_GForms_Markup {
+class Crb_GForms_Table {
 
 	public $results = '';
 
