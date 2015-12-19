@@ -14,15 +14,18 @@ class Crb_Shortcodes {
 
 		// Define shortcodes
 		$shortcodes = array(
-			'hello-world' => new Crb_Shortcode_Increment_Output_Index(),
-			'indexed-text' => new Crb_Shortcode_Increment_Output_Index()
+			'hello-world' => new Crb_Shortcode_HelloWorld(),
+			'indexed-text' => new Crb_Shortcode_IndexedText()
 		);
 
 		// add_shortcode( 'shortcode-tag', array(__CLASS__, 'output') );
 		foreach ( $shortcodes as $shortcode => $shortcode_obj ) {
 			add_shortcode(
 				apply_filters("crb_{$shortcode}_shortcode_tag", $shortcode),
-				array(apply_filters("crb_{$shortcode}_shortcode_obj", $shortcode_obj), 'output')
+				array(
+					apply_filters("crb_{$shortcode}_shortcode_obj", $shortcode_obj),
+					'output'
+				)
 			);
 		}
 	}
@@ -34,7 +37,7 @@ class Crb_Shortcode_HelloWorld extends Crb_Shortcodes {
 	}
 }
 
-class Crb_Shortcode_Increment_Output_Index extends Crb_Shortcodes {
+class Crb_Shortcode_IndexedText extends Crb_Shortcodes {
 
 	protected $index = 0;
 
