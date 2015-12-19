@@ -114,9 +114,9 @@ class Crb_Helpers {
 		$arr_obj = self::unpack_variable($arr_obj);
 
 		// get the value
-		if (is_object($arr_obj) && !empty($arr_obj->$var_name)) {
+		if ( is_object($arr_obj) && !empty($arr_obj->$var_name) ) {
 			$result = $arr_obj->$var_name;
-		} else if (is_array($arr_obj) && !empty($arr_obj[$var_name]) ) {
+		} else if ( is_array($arr_obj) && !empty($arr_obj[$var_name]) ) {
 			$result = $arr_obj[$var_name];
 		} else {
 			return $default_value;
