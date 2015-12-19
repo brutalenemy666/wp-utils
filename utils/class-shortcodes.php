@@ -14,15 +14,15 @@ class Crb_Shortcodes {
 
 		// Define shortcodes
 		$shortcodes = array(
-			'hello-world' => 'Crb_Shortcode_HelloWorld',
-			'indexed-text' => 'Crb_Shortcode_Increment_Output_Index'
+			'hello-world' => new Crb_Shortcode_Increment_Output_Index(),
+			'indexed-text' => new Crb_Shortcode_Increment_Output_Index()
 		);
 
 		// add_shortcode( 'shortcode-tag', array(__CLASS__, 'output') );
-		foreach ( $shortcodes as $shortcode => $class_name ) {
+		foreach ( $shortcodes as $shortcode => $shortcode_obj ) {
 			add_shortcode(
 				apply_filters("crb_{$shortcode}_shortcode_tag", $shortcode),
-				array(apply_filters("crb_{$shortcode}_shortcode_class", $class_name), 'output')
+				array(apply_filters("crb_{$shortcode}_shortcode_obj", $shortcode_obj), 'output')
 			);
 		}
 	}
