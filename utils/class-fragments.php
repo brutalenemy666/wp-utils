@@ -41,6 +41,9 @@ class Crb_Fragments {
 			case 'list': // in plugin usage
 				$destination_directory = $sdir . $dsep . 'includes' . $dsep . 'lists' . $dsep;
 				break;
+			case 'shortcode': // for a shortcode content
+				$destination_directory = $sdir . $dsep . 'shortcode' . $dsep;
+				break;
 			case 'template':
 				$destination_directory = $sdir . $dsep . 'templates' . $dsep;
 				break;
