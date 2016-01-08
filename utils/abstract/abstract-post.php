@@ -34,7 +34,7 @@ abstract class Crb_Abstract_Post {
 		return new $child_class($post);
 	}
 
-	protected function __construct( $post ) {
+	protected function __construct( $post=null ) {
 		// $this->meta_prefix = '_crb_';
 
 		if ( is_null($this->pt_to_validate) ) {
@@ -51,14 +51,16 @@ abstract class Crb_Abstract_Post {
 			$this->post = $post;
 		}
 
-		if ( $post!==null && !$this->post ) {
+		if ( !is_null($post) && !$this->post ) {
 			$message = __('Post not found.', 'crb');
 			throw new Exception($message);
 		} else if ( $this->post ) {
 			$this->post_type = $this->post->post_type;
 		}
 
-		$this->_post_type_validation();
+		if ( !is_null($post) ) {
+			$this->_post_type_validation();
+		}
 	}
 
 	public function __isset( $key ) {
@@ -146,7 +148,7 @@ abstract class Crb_Abstract_Post {
 	========================================================================== */
 
 	public function get_id() {
-		return (int) $this->post->ID;
+		return $this->post ? (int) $this->post->ID : false;
 	}
 
 	public function get_permalink( $leavename=false ) {
@@ -210,6 +212,8 @@ abstract class Crb_Abstract_Post {
 	========================================================================== */
 
 	protected function _save_to_db() {
+		$this->_before_save();
+		$this->_set_post_type();
 		$this->_insert_as_wp_post();
 		$this->_update_metas();
 		$this->_update_taxonomies();
@@ -226,11 +230,24 @@ abstract class Crb_Abstract_Post {
 		return $this;
 	}
 
+	protected function _set_post_type() {
+		$post_type = !empty($this->new_postdata['postdata']['post_type']) ? $this->new_postdata['postdata']['post_type'] : false;
+		if ( !$post_type ) {
+			$post_type = $this->pt_to_validate;
+		} else if ( $this->pt_to_validate!==$post_type ) {
+			$msg = __("Invalid post type. {$this->pt_to_validate}!=={$post_type}", 'crb');
+			throw new Exception($msg);
+		}
+
+		$this->new_postdata['postdata']['post_type'] = $post_type;
+		return $this;
+	}
+
 	protected function _insert_as_wp_post() {
 		$postdata = $this->new_postdata['postdata'];
 
 		$function_name = 'wp_insert_post';
-		$postdata_post_id = empty($postdata['ID']) ? intval($postdata['ID']) : false;
+		$postdata_post_id = !empty($postdata['ID']) ? intval($postdata['ID']) : false;
 		if ( $postdata_post_id ) {
 			$function_name = 'wp_update_post';
 			$this->_post_type_validation( get_post_type($postdata_post_id) );
@@ -292,6 +309,11 @@ abstract class Crb_Abstract_Post {
 		}
 
 		return $this;
+	}
+
+	protected function _before_save() {
+		// do something to the postdata before save
+		// might be handy in the child class
 	}
 
 	protected function _after_save() {
