@@ -93,12 +93,8 @@ class Crb_File_To_Media {
 
 		$attach_id = wp_insert_attachment($attachment);
 
-		// you must first include the image.php file
-		// for the function wp_generate_attachment_metadata() to work
 		require_once(ABSPATH . 'wp-admin/includes/image.php');
 		require_once(ABSPATH . 'wp-admin/includes/file.php');
-
-		// required for wp_read_video_metadata()
 		require_once(ABSPATH . 'wp-admin/includes/media.php');
 
 		// update atatchment meta data
@@ -117,10 +113,10 @@ class Crb_File_To_Media {
 		global $wpdb;
 
 		$query = "SELECT post.ID FROM {$wpdb->posts} AS post
-				INNER JOIN {$wpdb->postmeta} AS meta ON meta.post_id = post.ID
-				WHERE post.post_type = 'attachment'
-				AND meta.meta_key = '_crb_attachment_origin_url'
-				AND meta.meta_value = %s";
+			INNER JOIN {$wpdb->postmeta} AS meta ON meta.post_id = post.ID
+			WHERE post.post_type = 'attachment'
+			AND meta.meta_key = '_crb_attachment_origin_url'
+			AND meta.meta_value = %s";
 		$query = $wpdb->prepare($query, $uploader->file_url);
 
 		return $wpdb->get_var($query);
