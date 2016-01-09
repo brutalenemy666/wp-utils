@@ -30,9 +30,8 @@ function crb_gform_replace_wrapper_class($form_string, $form) {
  */
 add_filter('gform_field_css_class', 'crb_gforms_change_field_error_class', 10, 3);
 function crb_gforms_change_field_error_class($classes, $field, $form) {
-	$classes .= ' gfield-' . $field['type'] . ' gfield-' . $field['size'];
-
-	return str_replace('gfield_error', 'crb_gfield_error', $classes) ;
+	$classes = str_replace('gfield_error', 'crb_gfield_error', $classes);
+	return $classes;
 }
 
 /**
@@ -40,7 +39,7 @@ function crb_gforms_change_field_error_class($classes, $field, $form) {
  */
 add_filter('gform_field_css_class', 'crb_gforms_add_field_type_class', 10, 3);
 function crb_gforms_add_field_type_class($classes, $field, $form) {
-	$classes .= ' gfield-' . $field['type'] . ' gfield-' . $field['size'];
+	$classes = ' gfield-' . $field['type'] . ' gfield-' . $field['size'];
 	return $classes;
 }
 
