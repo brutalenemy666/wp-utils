@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Disable the confirmation anchor
  * http://www.gravityhelp.com/documentation/page/Gform_confirmation_anchor
