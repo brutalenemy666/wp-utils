@@ -1,4 +1,4 @@
-<?php
+`<?php
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -80,20 +80,17 @@ function crb_pre_get_posts($query) {
 	}
 
 	// check if there is a Singular Name entry with the same post name
-	$result = $wpdb->get_row(
-		$wpdb->prepare(
-			"SELECT `post_type` FROM `$wpdb->posts` WHERE `post_name` = '%s' AND `post_type` = 'post_type_name' LIMIT 1",
-			$post_name
-		)
-	);
+	$query = "SELECT * FROM `$wpdb->posts` WHERE `post_name` = '%s' AND `post_type` = 'post_type_name' LIMIT 1"
+	$query = $wpdb->prepare($query, $post_name);
+	$result = $wpdb->get_row($query);
 
 	if ( !$result ) {
 		return;
 	}
 
 	// if such post exists then overwrite the main query
-	$query->set('post_type_name', $post_name);
-	$query->set('post_type', 'post_type_name');
+	$query->set('post_type_name', $result->post_name);
+	$query->set('post_type', $result->post_type);
 	$query->is_single = true;
 	$query->is_page = false;
 }
