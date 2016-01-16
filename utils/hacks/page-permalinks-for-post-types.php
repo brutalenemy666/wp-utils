@@ -94,3 +94,31 @@ function crb_pre_get_posts($query) {
 	$query->is_single = true;
 	$query->is_page = false;
 }
+
+// ensure we have unique post names across pages, posts and blog posts
+add_filter('wp_unique_post_slug', 'crb_wp_unique_post_slug', 10, 6);
+function crb_wp_unique_post_slug($slug, $post_ID, $post_status, $post_type, $post_parent, $original_slug) {
+	global $wpdb;
+
+	$check_sql = "SELECT post_name FROM $wpdb->posts 
+		WHERE post_type IN ('post_type_name', 'page') 
+		AND post_name = %s 
+		AND post_parent = %d
+		AND ID != %d 
+		LIMIT 1";
+	$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_parent, $post_ID ) );
+
+	if ( !$post_name_check ) {
+		return $slug;
+	}
+
+	$suffix = 2;
+	do {
+		$alt_post_name = _truncate_post_slug( $slug, 200 - ( strlen( $suffix ) + 1 ) ) . "-" . $suffix;
+		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $alt_post_name, $post_parent, $post_ID ) );
+		$suffix++;
+	} while ( $post_name_check );
+	$slug = $alt_post_name;
+
+	return $slug;
+}
