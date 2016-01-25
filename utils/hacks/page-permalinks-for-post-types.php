@@ -80,9 +80,20 @@ function crb_pre_get_posts($query) {
 	}
 
 	// check if there is a Singular Name entry with the same post name
-	$query = "SELECT * FROM `$wpdb->posts` WHERE `post_name` = '%s' AND `post_type` = 'post_type_name' LIMIT 1"
-	$query = $wpdb->prepare($query, $post_name);
-	$result = $wpdb->get_row($query);
+	$mysql_query = "SELECT * FROM `$wpdb->posts` WHERE `post_name` = '%s' AND `post_type` = 'post_type_name' LIMIT 1"
+	$result = $wpdb->get_row($wpdb->prepare($mysql_query, $post_name));
+
+	if ( !$result ) {
+		foreach (array('urlencode', 'urldecode') as $func_name) {
+			$tmp_post_name = $func_name($post_name);
+
+			// check if there is a Singular Name entry with the same post name
+			$result = $wpdb->get_row($wpdb->prepare($mysql_query, $tmp_post_name));
+			if ( $result ) {
+				break;
+			}
+		}
+	}
 
 	if ( !$result ) {
 		return;
