@@ -68,8 +68,6 @@ function crb_post_type_link($permalink, $post, $leavename) {
 
 add_action('pre_get_posts', 'crb_pre_get_posts');
 function crb_pre_get_posts($query) {
-	global $wpdb;
-
 	if( !$query->is_main_query() ) {
 		return;
 	}
@@ -79,29 +77,18 @@ function crb_pre_get_posts($query) {
 		return;
 	}
 
-	// check if there is a Singular Name entry with the same post name
-	$mysql_query = "SELECT * FROM `$wpdb->posts` WHERE `post_name` = '%s' AND `post_type` = 'post_type_name' LIMIT 1"
-	$result = $wpdb->get_row($wpdb->prepare($mysql_query, $post_name));
+	$post_obj = crb_get_post_by_post_name($post_name);
 
-	if ( !$result ) {
-		foreach (array('urlencode', 'urldecode') as $func_name) {
-			$tmp_post_name = $func_name($post_name);
-
-			// check if there is a Singular Name entry with the same post name
-			$result = $wpdb->get_row($wpdb->prepare($mysql_query, $tmp_post_name));
-			if ( $result ) {
-				break;
-			}
-		}
-	}
-
-	if ( !$result ) {
+	if ( !$post_obj ) {
 		return;
 	}
 
+	// just in case when the post name contains a special symbols and the query returns 404
+	add_filter('posts_results', 'crb_posts_results');
+
 	// if such post exists then overwrite the main query
-	$query->set('post_type_name', $result->post_name);
-	$query->set('post_type', $result->post_type);
+	$query->set('post_type_name', $post_obj->post_name);
+	$query->set('post_type', $post_obj->post_type);
 	$query->is_single = true;
 	$query->is_page = false;
 }
@@ -132,4 +119,44 @@ function crb_wp_unique_post_slug($slug, $post_ID, $post_status, $post_type, $pos
 	$slug = $alt_post_name;
 
 	return $slug;
+}
+
+function crb_get_post_by_post_name( $post_name ) {
+	global $wpdb;
+
+	if ( !$post_name ) {
+		return;
+	}
+
+	$sql_query = "SELECT * FROM `$wpdb->posts` WHERE `post_name` = %s AND `post_type` IN ('post_type_name') LIMIT 1";
+
+	// check if there is a Singular Name entry with the same post name
+	$post_obj = $wpdb->get_row($wpdb->prepare($sql_query, $post_name));
+
+	if ( !$post_obj ) {
+		foreach (array('urlencode', 'urldecode') as $func_name) {
+			$tmp_post_name = $func_name($post_name);
+
+			// check if there is a Singular Name entry with the same post name
+			$post_obj = $wpdb->get_row($wpdb->prepare($sql_query, $tmp_post_name));
+			if ( $post_obj ) {
+				break;
+			}
+		}
+	}
+
+	return $post_obj;
+}
+
+function crb_posts_results( $post_obj ) {
+	remove_filter('posts_results', 'crb_posts_results');
+
+	if ( $post_obj ) {
+		return $post_obj;
+	}
+
+	$post_name = get_query_var('name');
+	$post_obj = crb_get_post_by_post_name($post_name);
+	
+	return $post_obj ? array($post_obj) : array();
 }
