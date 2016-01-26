@@ -133,15 +133,17 @@ function crb_get_post_by_post_name( $post_name ) {
 	// check if there is a Singular Name entry with the same post name
 	$post_obj = $wpdb->get_row($wpdb->prepare($sql_query, $post_name));
 
-	if ( !$post_obj ) {
-		foreach (array('urlencode', 'urldecode') as $func_name) {
-			$tmp_post_name = $func_name($post_name);
+	if ( $post_obj ) {
+		return $post_obj;
+	}
 
-			// check if there is a Singular Name entry with the same post name
-			$post_obj = $wpdb->get_row($wpdb->prepare($sql_query, $tmp_post_name));
-			if ( $post_obj ) {
-				break;
-			}
+	foreach (array('urlencode', 'urldecode') as $func_name) {
+		$tmp_post_name = $func_name($post_name);
+
+		// check if there is a Singular Name entry with the same post name
+		$post_obj = $wpdb->get_row($wpdb->prepare($sql_query, $tmp_post_name));
+		if ( $post_obj ) {
+			break;
 		}
 	}
 
