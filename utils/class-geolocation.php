@@ -12,7 +12,7 @@ abstract class Crb_Geolocation {
 
 	protected $ip;
 	protected $address;
-	protected static $cache_time = 2880; // 2 * 24 * 60; // a two days in seconds
+	protected static $cache_time = 172800; // 2 * 24 * 60 * 60; // a two days in seconds
 
 	protected function __construct() { }
 
