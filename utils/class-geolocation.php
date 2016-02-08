@@ -4,21 +4,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Crb_Geolocation {
+/**
+ * If you use this class, then you should install a plugin to purge the outdated cache such as https://wordpress.org/plugins/delete-expired-transients/
+ */
+
+abstract class Crb_Geolocation {
 
 	protected $ip;
 	protected $address;
-	protected static $cache_time = 259200; // a three days in seconds
-
-	/** @var array API endpoints for looking up user IP address */
-	protected $ip_lookup_apis = array(
-		'icanhazip'         => 'http://ipv4.icanhazip.com',
-		'ipify'             => 'http://api.ipify.org/',
-		'ipecho'            => 'http://ipecho.net/plain',
-		'ident'             => 'http://v4.ident.me',
-		'whatismyipaddress' => 'http://bot.whatismyipaddress.com',
-		'ip.appspot'        => 'http://ip.appspot.com'
-	);
+	protected static $cache_time = 2 * 24 * 60; // a two days in seconds
 
 	protected function __construct() { }
 
@@ -27,6 +21,7 @@ class Crb_Geolocation {
 	public static function get( $ip_or_address=null ) {
 		$ip = '';
 		$address = '';
+		$ip_or_address = trim($ip_or_address);
 
 		if ( !$ip_or_address ) {
 			$locator_class = 'Crb_Geolocation_By_IP';
@@ -46,6 +41,7 @@ class Crb_Geolocation {
 	}
 
 	public static function get_cached( $ip_or_address=null, $reset_cache=false ) {
+		$ip_or_address = trim($ip_or_address);
 		$transient_name = 'crb_geo_' . md5($ip_or_address);
 		$geolocation = get_transient($transient_name);
 
