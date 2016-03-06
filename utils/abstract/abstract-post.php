@@ -9,6 +9,8 @@ abstract class Crb_Abstract_Post {
 	// post type name to validate
 	protected $pt_to_validate = null; // post | page, etc.
 
+	protected $use_acf_meta_functions = false;
+
 	public $post = null;
 
 	protected $meta_prefix = '';
@@ -84,7 +86,11 @@ abstract class Crb_Abstract_Post {
 	}
 
 	protected function _set_meta( $key, $value ) {
-		update_post_meta($this->get_id(), $this->meta_prefix . $key, $value);
+		if ( $this->use_acf_meta_functions && function_exists('update_field') ) {
+			update_field($this->meta_prefix . $key, $value, $this->get_id());
+		} else {
+			update_post_meta($this->get_id(), $this->meta_prefix . $key, $value);
+		}
 	}
 
 	protected function _delete_meta( $key ) {
@@ -92,7 +98,13 @@ abstract class Crb_Abstract_Post {
 	}
 
 	protected function _get_meta( $key ) {
-		return get_post_meta($this->get_id(), $this->meta_prefix . $key, true);
+		if ( $this->use_acf_meta_functions && function_exists('get_field') ) {
+			$meta_value = get_field($this->meta_prefix . $key, $this->get_id(), true);
+		} else {
+			$meta_value = get_post_meta($this->get_id(), $this->meta_prefix . $key, true);
+		}
+
+		return $meta_value;
 	}
 
 	protected function _get_author_info( $key ) {
@@ -156,7 +168,7 @@ abstract class Crb_Abstract_Post {
 	}
 
 	public function get_title() {
-		return $this->post->post_title;
+		return apply_filters('the_title', $this->post->post_title);
 	}
 
 	public function get_post_type() {
@@ -193,18 +205,48 @@ abstract class Crb_Abstract_Post {
 		return $return;
 	}
 
-	public function get_children( $post_type='', $post_status='publish' ) {
+	public function get_children( $post_status='publish', $columns_to_return=array('ID'), $post_parent_id=null ) {
 		global $wpdb;
 
-		if ( !empty($post_type) ) {
-			$query = "SELECT ID FROM {$wpdb->posts} WHERE post_type = '%s' AND post_parent = %d AND post_status = %s";
-			$query = $wpdb->prepare($query, $post_type, $this->get_id(), $post_status);
-		} else {
-			$query = "SELECT ID FROM {$wpdb->posts} WHERE post_parent = %d AND post_status = %s";
-			$query = $wpdb->prepare($query, $this->get_id(), $post_status);
+		$columns_to_return = array_map('esc_sql', $columns_to_return);
+		$columns_to_return_text = implode(', ', $columns_to_return);
+
+		if ( is_null($post_parent_id) ) {
+			$post_parent_id = $this->get_id();
 		}
 
-		return $wpdb->get_results($select);
+		$query = "SELECT {$columns_to_return_text} FROM {$wpdb->posts} WHERE post_parent = %d AND post_status = %s ORDER BY menu_order ASC, post_date DESC, post_title ASC";
+		$query = $wpdb->prepare($query, $post_parent_id, $post_status);
+
+		if ( count($columns_to_return)===1 ) {
+			$results = $wpdb->get_col($query);
+		} else {
+			$results = $wpdb->get_results($query);
+		}
+
+		return $wpdb->get_col($query);
+	}
+
+	public function get_ancestor_children( $post_status='publish', $columns_to_return=array('ID') ) {
+		$ancestor_id = $this->get_top_parent();
+		return $this->get_children( $post_status, $columns_to_return, $ancestor_id );
+	}
+
+	public function get_parents() {
+		$ancestors = get_post_ancestors($this->get_id());
+		$parents = array_reverse($ancestors);
+
+		return $parents;
+	}
+
+	public function get_top_parent() {
+		$parents = $this->get_parents();
+
+		if ( empty($parents) ) {
+			return $this->get_id();
+		}
+
+		return $parents[0];
 	}
 
 	/* ==========================================================================
