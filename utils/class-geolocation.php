@@ -12,7 +12,7 @@ abstract class Crb_Geolocation {
 
 	protected $ip;
 	protected $address;
-	protected static $cache_time = 172800; // 2 * 24 * 60 * 60; // a two days in seconds
+	protected static $cache_time = 604800; // 7 * 24 * 60 * 60; // a week in seconds
 
 	protected function __construct() { }
 
@@ -55,9 +55,9 @@ abstract class Crb_Geolocation {
 	}
 
 	public static function get_ip_address() {
-		$client  = $_SERVER['HTTP_CLIENT_IP'];
-		$forward = $_SERVER['HTTP_X_FORWARDED_FOR'];
-		$remote  = $_SERVER['REMOTE_ADDR'];
+		$client  = !empty($_SERVER['HTTP_CLIENT_IP']) ? $_SERVER['HTTP_CLIENT_IP'] : false;
+		$forward = !empty($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : false;
+		$remote  = !empty($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : false;
 
 		if ( filter_var($client, FILTER_VALIDATE_IP) ) {
 			$ip = $client;
@@ -98,6 +98,19 @@ class Crb_Geolocation_By_Address extends Crb_Geolocation {
 
 		$geocode = json_decode($result['body']);
 
+		$formatted_address = $geocode->results[0]->formatted_address;
+
+		$country_long_name = '';
+		$country_short_name = '';
+		foreach ($geocode->results[0]->address_components as $address_component) {
+			if ( !in_array('country', (array) $address_component->types) ) {
+				continue;
+			}
+
+			$country_long_name = $address_component->long_name;
+			$country_short_name = $address_component->short_name;
+		}
+
 		if ( !empty($geocode->results) ) {
 			$lat = $geocode->results[0]->geometry->location->lat;
 			$lng = $geocode->results[0]->geometry->location->lng;
@@ -110,7 +123,12 @@ class Crb_Geolocation_By_Address extends Crb_Geolocation {
 			'lat'     => $lat,
 			'lng'     => $lng,
 			'ip'      => false,
-			'address' => $this->address
+
+			'address' => $this->address,
+			'address_formatted' => $formatted_address,
+
+			'country_long_name' => $country_long_name,
+			'country_short_name' => $country_short_name,
 		);
 
 		return $address;
@@ -121,8 +139,8 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 
 	/** @var array API endpoints for geolocating an IP address */
 	protected $geoip_apis = array(
-		'telize'           => 'http://www.telize.com/geoip/%s',
-		'geoip-api.meteor' => 'http://geoip-api.meteor.com/lookup/%s',
+		'geoplugin'        => 'http://www.geoplugin.net/json.gp?ip=%s',
+		'geobytes'         => 'http://getcitydetails.geobytes.com/GetCityDetails?fqcn=%s',
 	);
 
 	protected function _geolocate() {
@@ -147,13 +165,19 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 			$geocode = json_decode($response['body']);
 
 			switch ($service_name) {
-				case 'telize':
-					$lat = $geocode->latitude;
-					$lng = $geocode->longitude;
+				case 'geobytes':
+					$lat = $geocode->geobyteslatitude;
+					$lng = $geocode->geobyteslongitude;
+
+					$country_long_name = $geocode->geobytescountry;
+					$country_short_name = $geocode->geobytesinternet;
 					break;
-				case 'geoip-api.meteor':
-					$lat = $geocode->ll[0];
-					$lng = $geocode->ll[1];
+				case 'geoplugin':
+					$lat = $geocode->geoplugin_latitude;
+					$lng = $geocode->geoplugin_longitude;
+
+					$country_long_name = $geocode->geoplugin_countryName;
+					$country_short_name = $geocode->geoplugin_countryCode;
 					break;
 				default:
 					break;
@@ -165,10 +189,15 @@ class Crb_Geolocation_By_IP extends Crb_Geolocation {
 		}
 
 		$address = array(
-			'lat'     => $lat,
-			'lng'     => $lng,
-			'ip'      => $this->ip,
-			'address' => false
+			'lat'               => $lat,
+			'lng'               => $lng,
+			'ip'                => $this->ip,
+
+			'address'           => false,
+			'address_formatted' => false,
+
+			'country_long_name' => $country_long_name,
+			'country_short_name' => $country_short_name,
 		);
 
 		return $address;
