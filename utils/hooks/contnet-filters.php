@@ -5,6 +5,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
+ * Excerpt ending
+ */
+add_filter('excerpt_more', 'crb_excerpt_more');
+function crb_excerpt_more() {
+	return '...';
+}
+
+/**
+ * Excerpt length
+ */
+add_filter('excerpt_length', 'crb_excerpt_length', 999);
+function crb_excerpt_length() {
+	return 55;
+}
+
+/**
  * Removes empty paragraphes from content when using shortcodes
  */
 add_filter('the_content', 'crb_shortcode_empty_paragraph_fix');
