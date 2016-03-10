@@ -41,15 +41,27 @@ class Crb_File_To_Media {
 		return $uploader->attachment_id;
 	}
 
-	protected function upload() {
-		$upload_dir = wp_upload_dir();
+	protected function get_file_name() {
+		$is_gmap_image_link = (bool) strstr($this->file_url, 'maps.google.com');
 
 		$file_name = trim(uniqid() . '-' . basename($this->file_url));
-		$ext = pathinfo($file_name, PATHINFO_EXTENSION);
+
+		if ( $is_gmap_image_link ) { // set png ext and mimes if google maps image link
+			$ext = 'png';
+			$file_name = md5($file_name);
+		} else {
+			$ext = pathinfo($file_name, PATHINFO_EXTENSION);
+		}
 
 		$file_name = rtrim($file_name, '.' . $ext);
 		$file_name = sanitize_title($file_name) . '.' . $ext;
 
+		return $file_name;
+	}
+
+	protected function upload() {
+		$upload_dir = wp_upload_dir();
+		$file_name = $this->get_file_name();
 		$directory_to_save = $upload_dir['path'] . DIRECTORY_SEPARATOR;
 
 		// ---->
@@ -103,6 +115,7 @@ class Crb_File_To_Media {
 
 		update_post_meta($attach_id, '_wp_attached_file', $this->file_data['attach_file']);
 		update_post_meta($attach_id, '_crb_attachment_origin_url', $this->file_url);
+		update_post_meta($attach_id, '_crb_attachment_origin_url_md5', md5($this->file_url));
 
 		$this->attachment_id = $attach_id;
 
@@ -115,9 +128,9 @@ class Crb_File_To_Media {
 		$query = "SELECT post.ID FROM {$wpdb->posts} AS post
 			INNER JOIN {$wpdb->postmeta} AS meta ON meta.post_id = post.ID
 			WHERE post.post_type = 'attachment'
-			AND meta.meta_key = '_crb_attachment_origin_url'
+			AND meta.meta_key = '_crb_attachment_origin_url_md5'
 			AND meta.meta_value = %s";
-		$query = $wpdb->prepare($query, $uploader->file_url);
+		$query = $wpdb->prepare($query, md5($this->file_url));
 
 		return $wpdb->get_var($query);
 	}
