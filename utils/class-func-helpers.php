@@ -224,4 +224,49 @@ class Crb_Helpers {
 
 		return $page_url;
 	}
+
+	/**
+	 * Returns the top most parent post
+	 */
+	public static function get_top_parent( $post_id = 0 ) {
+		$parents = self::get_parents($post_id);
+
+		if ( empty($parents) ) {
+			return get_post($post_id);
+		}
+
+		$top_parent = get_post($parents[0]);
+
+		return $top_parent;
+	}
+
+	/**
+	 * Returns an array with post parents
+	 */
+	public function get_parents( $post_id = 0 ) {
+		$ancestors = get_post_ancestors($post_id);
+		$parents = array_reverse($ancestors);
+
+		return $parents;
+	}
+
+	/**
+	 * Returns the url of the current page
+	 */
+	public static function get_current_url() {
+		$page_url = 'http';
+
+		if ( !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] == "on" ) {
+			$page_url .= "s";
+		}
+
+		$page_url .= "://";
+		if ( $_SERVER["SERVER_PORT"] != "80" ) {
+			$page_url .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+		} else {
+			$page_url .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+		}
+
+		return $page_url;
+	}
 }
