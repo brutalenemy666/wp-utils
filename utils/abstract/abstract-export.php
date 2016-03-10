@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-abstract class Crb_Export {
+abstract class Crb_Abstract_Export {
 
 	protected $headings = array(
 		// label 1,
@@ -40,6 +40,6 @@ abstract class Crb_Export {
 			$filename = sprintf(__('Export_%s', 'crb'), date('Y-m-d'));
 		}
 
-		return $filename;
+		return sanitize_title($filename);
 	}
 }
