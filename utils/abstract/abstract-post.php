@@ -44,7 +44,7 @@ abstract class Crb_Abstract_Post {
 			throw new Exception($message);
 		}
 
-		if ( is_numeric($post) || intval($post) ) {
+		if ( is_numeric($post) && intval($post) ) {
 			$post_id = absint($post);
 			$this->post = get_post($post_id);
 		} elseif ( $post instanceof WC_Post ) {
@@ -72,8 +72,13 @@ abstract class Crb_Abstract_Post {
 	public function __get( $key ) {
 		$function_name = '_get_meta';
 
-		if ( preg_match('~^author_~', $key) ) {
+		if ( !isset($this->post->$key) ) {
+			// allow access to wp post properties such as post_name, post_content, etc.
+			return $this->post->$key;
+
+		} else if ( preg_match('~^author_~', $key) ) {
 			$function_name = '_get_author_info';
+
 		} else if ( method_exists($this, $key) ) {
 			// make the function accessible only if the method is public
 			$reflection = new ReflectionMethod($this, $key);
