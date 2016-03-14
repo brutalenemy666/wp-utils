@@ -72,7 +72,7 @@ abstract class Crb_Abstract_Post {
 	public function __get( $key ) {
 		$function_name = '_get_meta';
 
-		if ( !isset($this->post->$key) ) {
+		if ( isset($this->post->$key) ) {
 			// allow access to wp post properties such as post_name, post_content, etc.
 			return $this->post->$key;
 
