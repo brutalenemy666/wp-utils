@@ -4,6 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+
 abstract class Crb_Abstract_User {
 
 	protected $user = null;
@@ -174,6 +175,8 @@ abstract class Crb_Abstract_User {
 
 	protected function _save_to_db() {
 		$this->_before_save();
+		$this->_validate_user_login();
+		$this->_validate_user_email();
 		$this->_insert_as_wp_user();
 		$this->_update_metas();
 		$this->_after_save();
@@ -186,6 +189,44 @@ abstract class Crb_Abstract_User {
 		);
 
 		return $this;
+	}
+
+	protected function _validate_user_login() {
+		if ( empty($this->new_userdata['userdata']['user_login']) ) {
+			$message = __('Cannot create a user with an empty login name.', 'crb');
+			throw new Exception($message);
+		}
+
+		$username = $this->new_userdata['userdata']['user_login'];
+
+		if ( !validate_username( $username ) ) {
+			$message = __('Invalid login name.', 'crb');
+			throw new Exception($message);
+		}
+
+		if ( username_exists( $username ) ) {
+			$message = __('The login name is already in use.', 'crb');
+			throw new Exception($message);
+		}
+	}
+
+	protected function _validate_user_email() {
+		if ( empty($this->new_userdata['userdata']['user_email']) ) {
+			$message = __('Cannot create a user without an email address.', 'crb');
+			throw new Exception($message);
+		}
+
+		$email = $this->new_userdata['userdata']['user_email'];
+
+		if ( !is_email( $email ) ) {
+			$message = __('Invalid email address.', 'crb');
+			throw new Exception($message);
+		}
+
+		if ( !email_exists( $email ) ) {
+			$message = __('The email address is already in use.', 'crb');
+			throw new Exception($message);
+		}
 	}
 
 	protected function _insert_as_wp_user() {
