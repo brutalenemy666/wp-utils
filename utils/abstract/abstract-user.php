@@ -264,7 +264,7 @@ abstract class Crb_Abstract_User {
 			throw new Exception($message);
 		}
 
-		if ( !is_email( $email ) ) {
+		if ( !is_email( $user_email ) ) {
 			$message = __('Invalid email address.', 'crb');
 			throw new Exception($message);
 		}
@@ -274,7 +274,7 @@ abstract class Crb_Abstract_User {
 			$user_info = get_userdata( $user_id );
 		}
 
-		if ( email_exists( $email ) && ( !$user_info || $user_info->user_email !== $email ) ) {
+		if ( email_exists( $user_email ) && ( !$user_info || $user_info->user_email !== $user_email ) ) {
 			$message = __('The email address is already in use.', 'crb');
 			throw new Exception($message);
 		}
@@ -284,10 +284,9 @@ abstract class Crb_Abstract_User {
 		$userdata = $this->new_userdata['userdata'];
 		$user_id = !empty($userdata['ID']) ? intval($userdata['ID']) : false;
 
+		$function_name = 'wp_insert_user';
 		if ( $user_id ) {
 			$function_name = 'wp_update_user';
-		} else if ( $this->post ) {
-			$function_name = 'wp_insert_user';
 		}
 
 		$this->new_userdata['user_id'] = $function_name($userdata, true);
