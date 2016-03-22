@@ -4,10 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Crb_User {
+abstract class Crb_Abstract_User {
 
 	protected $user = null;
 	protected $meta_prefix = '';
+
+	protected $use_acf_meta_functions = false;
 
 	public $new_userdata = array(
 		'user_id'   => 0,
@@ -34,8 +36,10 @@ class Crb_User {
 		'user_activation_key',
 	);
 
-	public static function get_instance( $user=null ) {
-		return new self($user);
+	public static function get_instance( $user = null ) {
+		$child_class = get_called_class();
+
+		return new $child_class($user);
 	}
 
 	protected function __construct( $user ) {
@@ -64,7 +68,7 @@ class Crb_User {
 		return $this->$function_name($key);
 	}
 
-	protected function _load_user( $user=null ) {
+	protected function _load_user( $user = null ) {
 		if ( is_user_logged_in() && !$user ) {
 			$this->user = wp_get_current_user();
 		} else if ( $user instanceof WP_User ) {
@@ -85,28 +89,42 @@ class Crb_User {
 		return $this;
 	}
 
+	public function _set_meta( $key, $value ) {
+		if ( $this->use_acf_meta_functions && function_exists('update_field') ) {
+			update_field( $this->meta_prefix . $key, $value, 'user_' . $this->get_id() );
+		} else {
+			update_user_meta( $this->get_id(), $this->meta_prefix . $key, $value );
+		}
+	}
+
+	public function _delete_meta( $key ) {
+		if ( $this->use_acf_meta_functions && function_exists('get_field') ) {
+			delete_user_meta( $this->get_id(), '_' . $this->meta_prefix . $key );
+		}
+
+		delete_user_meta( $this->get_id(), $this->meta_prefix . $key );
+	}
+
+	public function _get_meta( $key ) {
+		if ( $this->use_acf_meta_functions && function_exists('get_field') ) {
+			$meta_value = get_field( $this->meta_prefix . $key, 'user_' . $this->get_id() );
+		} else {
+			$meta_value = get_user_meta( $this->get_id(), $this->meta_prefix . $key, true );
+		}
+
+		return $meta_value;
+	}
+
+	public function _refresh_userdata() {
+		$this->_load_user( $this->get_id() );
+	}
+
 	/* ==========================================================================
 		# Public Functions
 	========================================================================== */
 
-	public function refresh_userdata() {
-		$this->_load_user( $this->get_id() );
-	}
-
 	public function get_id() {
 		return (int) $this->user->ID;
-	}
-
-	public function set_meta( $key, $value ) {
-		update_user_meta($this->get_id(), $this->meta_prefix . $key, $value);
-	}
-
-	public function delete_meta( $key ) {
-		delete_user_meta($this->get_id(), $key);
-	}
-
-	public function get_meta( $key ) {
-		return get_user_meta($this->get_id(), $this->meta_prefix . $key, true);
 	}
 
 	public function can( $capability ) {
@@ -120,7 +138,7 @@ class Crb_User {
 		return $user_role;
 	}
 
-	public function set_password( $password='' ) {
+	public function set_password( $password = '' ) {
 		if ( !$password ) {
 			$password = wp_generate_password();
 		}
@@ -130,11 +148,11 @@ class Crb_User {
 		return $password;
 	}
 
-	public function check_password( $password='' ) {
+	public function check_password( $password = '' ) {
 		return wp_check_password($password, $this->user->data->user_pass, $user->get_id());
 	}
 
-	public function process_login( $password=false, $redirect_url='' ) {
+	public function process_login( $password = false, $redirect_url = '' ) {
 		if ( $password && !$this->check_password($password) ) {
 			$message = __('Invalid user password.', 'crb');
 			throw new Exception($message);
@@ -148,5 +166,73 @@ class Crb_User {
 
 		wp_redirect($redirect_url);
 		exit;
+	}
+
+	/* ==========================================================================
+		# User Save/Update
+	========================================================================== */
+
+	protected function _save_to_db() {
+		$this->_before_save();
+		$this->_insert_as_wp_user();
+		$this->_update_metas();
+		$this->_after_save();
+
+		// reset $new_userdata
+		$this->new_userdata = array(
+			'user_id'   => 0,
+			'userdata'  => array(),
+			'metadata'  => array()
+		);
+
+		return $this;
+	}
+
+	protected function _insert_as_wp_user() {
+		$userdata = $this->new_userdata['userdata'];
+		$user_id = !empty($userdata['ID']) ? intval($userdata['ID']) : false;
+
+		if ( $user_id ) {
+			$function_name = 'wp_update_user';
+		} else if ( $this->post ) {
+			$function_name = 'wp_insert_user';
+		}
+
+		$this->new_userdata['user_id'] = $function_name($userdata, true);
+
+		if ( is_wp_error($this->new_userdata['user_id']) ) {
+			$error = $this->new_userdata['user_id'];
+			throw new Exception($error->get_error_message());
+		} else {
+			$user_id = $this->new_userdata['user_id'];
+			$this->_load_user($user_id);
+		}
+
+		return $this;
+	}
+
+	protected function _update_metas() {
+		$user_id = $this->get_id();
+
+		$metadata = $this->new_userdata['metadata'];
+		if ( empty($metadata) ) {
+			return;
+		}
+
+		foreach ($metadata as $meta_key => $meta_value) {
+			$this->_set_meta( $meta_key, $meta_value );
+		}
+
+		return $this;
+	}
+
+	protected function _before_save() {
+		// do something to the userdata before save
+		// might be handy in the child class
+	}
+
+	protected function _after_save() {
+		// do something when post saving is successful
+		// might be handy in the child class
 	}
 }
