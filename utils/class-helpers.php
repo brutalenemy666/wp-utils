@@ -190,22 +190,6 @@ class Crb_Helpers {
 	}
 
 	/**
-	 * Returns the top most parent post
-	 */
-	public static function get_top_parent( $post_id = 0 ) {
-		$ancestors = get_post_ancestors($post_id);
-		$parents = array_reverse($ancestors);
-
-		if ( empty($parents) ) {
-			return get_post($post_id);
-		}
-
-		$top_parent = get_post($parents[0]);
-
-		return $top_parent;
-	}
-
-	/**
 	 * Returns the url of the current page
 	 */
 	public static function get_current_url() {
