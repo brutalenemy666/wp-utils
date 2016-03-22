@@ -128,6 +128,18 @@ abstract class Crb_Abstract_User {
 		return (int) $this->user->ID;
 	}
 
+	public function get_avatar( $size = '96', $args = '', $default = 'Mystery Man' ) {
+		return get_avatar( $this->get_id(), $default, $this->display_name, $args );
+	}
+
+	public function get_posts_url() {
+		return get_author_posts_url( $this->get_id() );
+	}
+
+	public function get_profile_link() {
+		return $this->get_posts_url();
+	}
+
 	public function can( $capability ) {
 		return call_user_func_array('user_can', array($this->user, $capability));
 	}
@@ -153,8 +165,13 @@ abstract class Crb_Abstract_User {
 		return wp_check_password($password, $this->user->data->user_pass, $user->get_id());
 	}
 
-	public function process_login( $password = false, $redirect_url = '' ) {
-		if ( $password && !$this->check_password($password) ) {
+	public function process_login( $password = false, $redirect_url = '', $force_login = false ) {
+		if ( !$force_login && !$password ) {
+			$message = __('User password not provided.', 'crb');
+			throw new Exception($message);
+		}
+
+		if ( !$force_login && !$this->check_password($password) ) {
 			$message = __('Invalid user password.', 'crb');
 			throw new Exception($message);
 		}
