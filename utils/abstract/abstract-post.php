@@ -99,7 +99,11 @@ abstract class Crb_Abstract_Post {
 	}
 
 	protected function _delete_meta( $key ) {
-		delete_post_meta($this->get_id(), $key);
+		if ( $this->use_acf_meta_functions && function_exists('get_field') ) {
+			delete_post_meta($this->get_id(), '_' . $this->meta_prefix . $key);
+		}
+
+		delete_post_meta($this->get_id(), $this->meta_prefix . $key);
 	}
 
 	protected function _get_meta( $key ) {
@@ -328,7 +332,7 @@ abstract class Crb_Abstract_Post {
 		}
 
 		foreach ($metadata as $meta_key => $meta_value) {
-			update_post_meta($post_id, $this->meta_prefix . $meta_key, $meta_value);
+			$this0->_set_meta( $meta_key, $meta_value );
 		}
 
 		return $this;
