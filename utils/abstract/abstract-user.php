@@ -192,12 +192,29 @@ abstract class Crb_Abstract_User {
 	}
 
 	protected function _validate_user_login() {
-		if ( empty($this->new_userdata['userdata']['user_login']) ) {
-			$message = __('Cannot create a user with an empty login name.', 'crb');
+		$username = false;
+		if ( !empty($this->new_userdata['userdata']['user_login']) ) {
+			$username = $this->new_userdata['userdata']['user_login'];
+		}
+
+		$user_id = false;
+		if ( !empty($this->new_userdata['userdata']['ID']) ) {
+			$user_id = $this->new_userdata['userdata']['ID'];
+		}
+
+		if ( $username && $user_id ) {
+			$message = __('Changing login name is not allowed.', 'crb');
 			throw new Exception($message);
 		}
 
-		$username = $this->new_userdata['userdata']['user_login'];
+		if ( $user_id ) {
+			return;
+		}
+
+		if ( !$username ) {
+			$message = __('Cannot create a user with an empty login name.', 'crb');
+			throw new Exception($message);
+		}
 
 		if ( !validate_username( $username ) ) {
 			$message = __('Invalid login name.', 'crb');
@@ -211,19 +228,36 @@ abstract class Crb_Abstract_User {
 	}
 
 	protected function _validate_user_email() {
-		if ( empty($this->new_userdata['userdata']['user_email']) ) {
+		$user_email = false;
+		if ( !empty($this->new_userdata['userdata']['user_email']) ) {
+			$user_email = $this->new_userdata['userdata']['user_email'];
+		}
+
+		$user_id = false;
+		if ( !empty($this->new_userdata['userdata']['ID']) ) {
+			$user_id = $this->new_userdata['userdata']['ID'];
+		}
+
+		if ( !$user_email && $user_id ) {
+			return;
+		}
+
+		if ( !$user_email ) {
 			$message = __('Cannot create a user without an email address.', 'crb');
 			throw new Exception($message);
 		}
-
-		$email = $this->new_userdata['userdata']['user_email'];
 
 		if ( !is_email( $email ) ) {
 			$message = __('Invalid email address.', 'crb');
 			throw new Exception($message);
 		}
 
-		if ( !email_exists( $email ) ) {
+		$user_info = false;
+		if ( $user_id ) {
+			$user_info = get_userdata( $user_id );
+		}
+
+		if ( email_exists( $email ) && ( !$user_info || $user_info->user_email !== $email ) ) {
 			$message = __('The email address is already in use.', 'crb');
 			throw new Exception($message);
 		}
