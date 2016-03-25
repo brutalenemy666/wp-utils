@@ -233,4 +233,57 @@ class Crb_Helpers {
 
 		return $parents;
 	}
+
+	/**
+	 * Returns the page template name by given page ID
+	 */
+	public static function page_template( $page_id ) {
+		$page_template_name = array_search(
+			get_post_meta( $page_id, '_wp_page_template', true ),
+			get_page_templates()
+		);
+
+		if ( $page_template_name === false ) {
+			$page_template_name = 'Default';
+		}
+
+		return $page_template_name;
+	}
+
+	/**
+	 * Get a page by its template, and optionally by additional criteria
+	 */
+	public static function get_page_by_template($template, $additional_meta = array()) {
+
+		// the query for the page template
+		$meta_query = array(
+			array(
+				'key' => '_wp_page_template',
+				'value' => $template,
+			)
+		);
+
+		// if there is an additional criteria, merge with the above meta query
+		if ($additional_meta) {
+			$meta_query = array_merge($meta_query, $additional_meta);
+			$meta_query['relation'] = 'AND';
+		}
+
+		// perform the query
+		$pages = get_posts(array(
+			'post_type' => 'page',
+			'posts_per_page' => 1,
+			'orderby' => 'ID',
+			'order' => 'ASC',
+			'meta_query' => $meta_query,
+			'fields' => 'ids'
+		));
+
+		// get the first page only
+		if ($pages && !empty($pages[0])) {
+			return get_post($pages[0]);
+		}
+
+		return false;
+	}
 }
