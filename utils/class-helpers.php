@@ -286,4 +286,48 @@ class Crb_Helpers {
 
 		return false;
 	}
+
+	/**
+	 * Remove an object filter.
+	 *
+	 * @param  string $tag                Hook name.
+	 * @param  string $class              Class name. Use 'Closure' for anonymous functions.
+	 * @param  string|void $method        Method name. Leave empty for anonymous functions.
+	 * @param  string|int|void $priority  Priority
+	 * @return void
+	 */
+	public static function remove_object_filter( $tag, $class = 'Closure', $method = NULL, $priority = NULL ) {
+		$filters = $GLOBALS['wp_filter'][ $tag ];
+
+		if ( empty( $filters ) ) {
+			return;
+		}
+
+		foreach ( $filters as $p => $filter ) {
+			if ( ! is_null($priority) && ( (int) $priority !== (int) $p ) ) {
+				continue;
+			}
+
+			$remove = FALSE;
+
+			foreach ( $filter as $identifier => $function ) {
+				$function = $function['function'];
+
+				if ( is_array( $function )
+					&& (
+						is_a( $function[0], $class )
+						|| ( is_array( $function ) && $function[0] === $class )
+					)
+				) {
+					$remove = ( $method && ( $method === $function[1] ) );
+				} else if ( $function instanceof Closure && $class === 'Closure' ) {
+					$remove = TRUE;
+				}
+
+				if ( $remove ) {
+					unset( $GLOBALS['wp_filter'][$tag][$p][$identifier] );
+				}
+			}
+		}
+	}
 }
