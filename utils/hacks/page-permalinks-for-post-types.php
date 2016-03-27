@@ -1,4 +1,4 @@
-`<?php
+<?php
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -98,11 +98,11 @@ add_filter('wp_unique_post_slug', 'crb_wp_unique_post_slug', 10, 6);
 function crb_wp_unique_post_slug($slug, $post_ID, $post_status, $post_type, $post_parent, $original_slug) {
 	global $wpdb;
 
-	$check_sql = "SELECT post_name FROM $wpdb->posts 
-		WHERE post_type IN ('post_type_name', 'page') 
-		AND post_name = %s 
+	$check_sql = "SELECT post_name FROM $wpdb->posts
+		WHERE post_type IN ('post_type_name', 'page')
+		AND post_name = %s
 		AND post_parent = %d
-		AND ID != %d 
+		AND ID != %d
 		LIMIT 1";
 	$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_parent, $post_ID ) );
 
@@ -159,6 +159,6 @@ function crb_posts_results( $post_obj ) {
 
 	$post_name = get_query_var('name');
 	$post_obj = crb_get_post_by_post_name($post_name);
-	
+
 	return $post_obj ? array($post_obj) : array();
 }
