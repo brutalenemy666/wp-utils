@@ -288,6 +288,27 @@ class Crb_Helpers {
 	}
 
 	/**
+	 * Get post_id by given post_name ( and post_type )
+	 *
+	 * @param  string  $post_name
+	 * @param  string  $post_type optional
+	 * @return integer $post_id
+	 */
+	public static function get_post_id_by_name( $post_name, $post_type = false ) {
+		global $wpdb;
+
+		if ( $post_name ) {
+			$query = "SELECT DISTINCT ID FROM $wpdb->posts WHERE post_type = %s AND post_name = %s";
+			$query = $wpdb->prepare($query, $post_type, $post_name);
+		} else {
+			$query = "SELECT DISTINCT ID FROM $wpdb->posts WHERE post_name = %s";
+			$query = $wpdb->prepare($query, $post_name);
+		}
+
+		return $wpdb->get_var($query);
+	}
+
+	/**
 	 * Remove an object filter.
 	 *
 	 * @param  string $tag                Hook name.
