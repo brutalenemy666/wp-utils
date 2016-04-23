@@ -55,7 +55,7 @@ function crb_post_type_link($permalink, $post, $leavename) {
 	switch ($post->post_type) {
 		case 'post_type_name':
 			$post_name = $post->post_name;
-			if ( is_admin() ) {
+			if ( $leavename ) {
 				$post_name = '%postname%';
 			}
 
